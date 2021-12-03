@@ -35,7 +35,6 @@ $$
 =
 \left[ \begin{matrix} cos\theta & -sin\theta \\ sin\theta & cos\theta \end{matrix} \right]
 \left[ \begin{matrix} y \\ x \end{matrix} \right]
-
 $$
 
 ## Translation Matrix
@@ -77,10 +76,10 @@ $$
   - 3D vector = ${(x,y,z,0)}^T$
   - Use 4 $ \times $ 4 Matrix
 $$
-  \left[ \begin{matrix} 
+\left[ \begin{matrix} 
   a & b & c & t_x \\ 
   d & e & f & t_y \\
-  d & e & f & t_z \\
-  0 & 0 & 0 & 1 \end{matrix} \right] 
+  g & h & i & t_z \\
+  0 & 0 & 0 & 1 \end{matrix} \right]
 $$
 ## 计算过程：先线性变换，再平移
