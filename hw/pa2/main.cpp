@@ -48,7 +48,7 @@ Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio,float zN
         0, 0, zNear + zFar, -zNear * zFar,
         0, 0, 1, 0;
     return tmp * ortho * projection;
-}s
+}
 
 int main(int argc, const char** argv)
 {
