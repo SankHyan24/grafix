@@ -25,6 +25,12 @@ Eigen::Matrix4f get_view_matrix(Eigen::Vector3f eye_pos)
 Eigen::Matrix4f get_model_matrix(float rotation_angle)
 {
     Eigen::Matrix4f model = Eigen::Matrix4f::Identity();
+
+    float arcs = rotation_angle * M_PI / 180;
+    model << cos(arcs), -sin(arcs), 0, 0,
+        sin(arcs), cos(arcs), 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1;
     return model;
 }
 
