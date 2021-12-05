@@ -50,5 +50,6 @@
         "streambuf": "cpp",
         "typeinfo": "cpp"
     },
-    "editor.defaultFormatter": "ms-vscode.cpptools"
+    "editor.defaultFormatter": "ms-vscode.cpptools",
+    "cmake.configureOnOpen": false
 }
