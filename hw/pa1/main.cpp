@@ -41,20 +41,20 @@ Eigen::Matrix4f get_rotation(Vector3f axis, float angle)
 
     return model;
 }
-// Eigen::Matrix4f get_model_matrix(float rotation_angle)
-// {
-//     Eigen::Matrix4f model = Eigen::Matrix4f::Identity();
-//     float arcs = rotation_angle * M_PI / 180;
-//     model << cos(arcs), -sin(arcs), 0, 0,
-//         sin(arcs), cos(arcs), 0, 0,
-//         0, 0, 1, 0,
-//         0, 0, 0, 1;
-//     // TODO: Implement this function
-//     // Create the model matrix for rotating the triangle around the Z axis.
-//     // Then return it.
+Eigen::Matrix4f get_model_matrix(float rotation_angle)
+{
+    Eigen::Matrix4f model = Eigen::Matrix4f::Identity();
+    float arcs = rotation_angle * M_PI / 180;
+    model << cos(arcs), -sin(arcs), 0, 0,
+        sin(arcs), cos(arcs), 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1;
+    // TODO: Implement this function
+    // Create the model matrix for rotating the triangle around the Z axis.
+    // Then return it.
 
-//     return model;
-// }
+    return model;
+}
 
 Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio,
                                       float zNear, float zFar)
@@ -67,15 +67,15 @@ Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio,
     // TODO: Implement this function
     // Create the projection matrix for the given parameters.
     // Then return it.
-    float t=tan(eye_fov/360*MY_PI)*fabs(zNear);
-    float r=t*aspect_ratio;
-    tmp << 2.0 /r, 0, 0, 0,
+    float t = tan(eye_fov / 360 * MY_PI) * fabs(zNear);
+    float r = t * aspect_ratio;
+    tmp << 2.0 / r, 0, 0, 0,
         0, 1.0 / t, 0, 0,
-        0, 0, 2.0 / (zNear-zFar), 0,
+        0, 0, 2.0 / (zNear - zFar), 0,
         0, 0, 0, 1;
     ortho << 1, 0, 0, 0,
         0, 1, 0, 0,
-        0, 0, 1, -(zNear+zFar)/2,
+        0, 0, 1, -(zNear + zFar) / 2,
         0, 0, 0, 1;
     projection << zNear, 0, 0, 0,
         0, zNear, 0, 0,
@@ -117,6 +117,7 @@ int main(int argc, const char **argv)
 
     int key = 0;
     int frame_count = 0;
+    // Define the rotation axis
     Eigen::Vector3f axis = {1, 0, 0};
 
     if (command_line)
@@ -124,7 +125,8 @@ int main(int argc, const char **argv)
         r.clear(rst::Buffers::Color | rst::Buffers::Depth);
 
         // r.set_model(get_model_matrix(angle));
-        r.set_model(get_rotation(axis, angle) /*get_model_matrix(angle)*/);
+        r.set_model(get_rotation(axis, angle));
+
         r.set_view(get_view_matrix(eye_pos));
         r.set_projection(get_projection_matrix(45, 1, 0.1, 50));
 
@@ -152,8 +154,8 @@ int main(int argc, const char **argv)
         key = cv::waitKey(10);
 
         std::cout << "frame count: " << frame_count++ << '\n';
-        
-        angle=angle+5;
+
+        angle = angle + 5;
         // if (key == 'a')
         // {
         //     angle += 10;
