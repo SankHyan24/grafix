@@ -58,7 +58,7 @@ Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio,float zN
 
 int main(int argc, const char** argv)
 {
-    float angle = 0;
+    float angle = 100;
     bool command_line = false;
     std::string filename = "output.png";
 
@@ -70,7 +70,7 @@ int main(int argc, const char** argv)
 
     rst::rasterizer r(700, 700);
 
-    Eigen::Vector3f eye_pos = {0,0,5};
+    Eigen::Vector3f eye_pos = {0,0,25};
 
 
     std::vector<Eigen::Vector3f> pos
@@ -139,7 +139,9 @@ int main(int argc, const char** argv)
         cv::cvtColor(image, image, cv::COLOR_RGB2BGR);
         cv::imshow("image", image);
         key = cv::waitKey(10);
-
+        // angle+=5;
+        // if(angle>365)
+        //     angle-=365;
         std::cout << "frame count: " << frame_count++ << '\n';
     }
 

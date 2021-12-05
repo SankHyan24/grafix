@@ -39,7 +39,7 @@ auto to_vec4(const Eigen::Vector3f& v3, float w = 1.0f)
 }
 static bool sc(Vector2f a,Vector2f b)
 {
-    if((a[0]*b[1]-a[1]*b[0])>0)
+    if((a[0]*b[1]-a[1]*b[0])>=0)
         return 1;
     else
         return 0;
@@ -124,7 +124,7 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
     int max_x = (int)std::ceil(std::max(v[0][0], std::max(v[1][0], v[2][0])));
     int min_y = (int)std::floor(std::min(v[0][1], std::min(v[1][1], v[2][1])));
     int max_y = (int)std::ceil(std::max(v[0][1], std::max(v[1][1], v[2][1])));
-#define MSAA
+// #define MSAA
 
 #ifndef MSAA
     for (int i = min_x; i <=max_x ; i++)
@@ -156,15 +156,16 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
         {
             cnt = 0;
             mindepth = FLT_MAX;
+            bool ifin[4]={0,0,0,0};
             float tmpdepth[] = {FLT_MAX,FLT_MAX,FLT_MAX,FLT_MAX};
-            for (int k = 0; k < 4; k++)
-            {
+            for (int k = 0; k < 4; k++)// 对四个点进行插值z
                 if(insideTriangle((float)i+cntmat[k][0],(float)j+cntmat[k][1],t.v))
                 {
                     cnt++;
+                    ifin[k]=true;
                     auto interpolation=computeBarycentric2D((float)i+cntmat[k][0],(float)j+cntmat[k][1],t.v);
                     float alpha,beta,gamma;
-                    std::tie(alpha, beta, gamma) = interpolation;//插值系数
+                    std::tie(alpha, beta, gamma) = interpolation;
                     float w_reciprocal = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
                     float z_interpolated = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
                     z_interpolated *= w_reciprocal;
@@ -172,65 +173,54 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
                     if (mindepth > z_interpolated)
 					    mindepth = z_interpolated;
                 }
-            }
-                float getnow[4];
-            if(cnt!=4)// 如果在边缘，就添加到边缘点
-            {
-                add_edge_id(i, j, tmpdepth,t.getColor());//增加点
-                int id=upload_cache_byid(i,j,tmpdepth,1,getnow,t.getColor());//更新z和颜色
-                //渲染当前状态的点
-                Vector3f point={(float)i, (float)j, depth_buf[get_index(i, j)]};
-                Vector3f color=(aslistcolor[4*id]+aslistcolor[4*id+1]+aslistcolor[4*id+2]+aslistcolor[4*id+3])/4;
-                set_pixel(point, color);
-            }
-            else if (depth_buf[get_index(i, j)] > mindepth) // 如果完全在这个三角形里面，而且还z覆盖了，就覆盖
+            if(cnt==0)
+                continue;
+            if(cnt==4&&depth_buf[get_index(i, j)] > mindepth)//quan覆盖，直接渲染
             {
                 Vector3f point={(float)i, (float)j, depth_buf[get_index(i, j)]};
 			    Vector3f color = (float)cnt/4.0*t.getColor();
                 set_pixel(point, color);
-			    depth_buf[get_index(i, j)] = mindepth;
+			    depth_buf[get_index(i, j)] = mindepth;//像素的zbuffer永远维护最小z值
+                int edgeindex=if_edge(i,j);
+                if(-1!=edgeindex)//如果是边缘点，删了
+                {
+                    edge_index.erase(edge_index.begin()+edgeindex);
+                    aslist.erase(aslist.begin()+4*edgeindex,aslist.begin()+4*edgeindex+3);
+                    aslistcolor.erase(aslistcolor.begin()+4*edgeindex,aslistcolor.begin()+4*edgeindex+3);
+                }
             }
-            else{
-                int id=upload_cache_byid(i,j,tmpdepth,1,getnow,t.getColor());//更新z和颜色
-                 Vector3f point={(float)i, (float)j, depth_buf[get_index(i, j)]};
-			    Vector3f color = (aslistcolor[4*id]+aslistcolor[4*id+1]+aslistcolor[4*id+2]+aslistcolor[4*id+3])/4;
+            else if(cnt==4&&-1!=if_edge(i,j))//非边缘点且不覆盖，查找是否是前者边缘点.是边缘点，所以要比较一下
+                {
+                    int id=if_edge(i,j),counter=0;
+                    Vector3f color = {0,0,0};
+                    for(int k=0;k<4;k++)
+                        if(aslist[4*id+k]>mindepth){
+                            aslist[4*id+k]=mindepth;
+                            aslistcolor[4*id+k]=t.getColor();
+                            color+=t.getColor()/4;
+                        }else{color+=aslistcolor[4*id+k]/4;}
+                    Vector3f point={(float)i, (float)j, depth_buf[get_index(i, j)]};
+                    set_pixel(point, color);
+                }//非前者边缘点，无事发生
+            //是边缘点的情况
+            else if(depth_buf[get_index(i, j)]>mindepth)//没被覆盖的边缘点
+            {//如果已经是边缘点了，去他妈的不算了，就当全不是边缘点
+                int edgeindex=if_edge(i,j);
+                if(-1==edgeindex)
+                {   
+                    add_edge_id(i,j,ifin,tmpdepth,t.getColor()); 
+                    edgeindex=if_edge(i,j);
+                }
+                upload_cache_byid(i,j,tmpdepth,t.getColor());
+			    depth_buf[get_index(i, j)] = mindepth;
+                Vector3f point={(float)i, (float)j, depth_buf[get_index(i, j)]};
+			    Vector3f color = {0,0,0};
+                for(int k=0;k<4;k++)
+                    color+=aslistcolor[4*edgeindex+k]/4;
                 set_pixel(point, color);
             }
-            // Vector3f point={(float)i, (float)j, depth_buf[get_index(i, j)]};
-			// Vector3f color = (float)cnt/4.0*t.getColor()+(1.0-(float)cnt/4.0)* frame_buf[get_index(i,j)] ;
-			// set_pixel(point, color);
-            // if (depth_buf[get_index(i, j)] > mindepth) 
-            // {
-			// 	depth_buf[get_index(i, j)] = mindepth;
-            // }
-            // TODO: 还是有问题！每个像素点应该维护一个更复杂的buffer，不然就会出现黑边问题
-            
-            // if(insideTriangle((float)i+0.25,(float)j+0.25,t.v))
-            //     cnt++;
-            // if(insideTriangle((float)i+0.25,(float)j+0.75,t.v))
-            //     cnt++;
-            // if(insideTriangle((float)i+0.75,(float)j+0.25,t.v))
-            //     cnt++;
-            // if(insideTriangle((float)i+0.75,(float)j+0.75,t.v))
-            //     cnt++;
-            // if(cnt>0)
-            // {
-            //     // 计算插值
-            //     auto interpolation=computeBarycentric2D((float)i+0.5,(float)j+0.5,t.v);
-            //     float alpha,beta,gamma;
-            //     std::tie(alpha, beta, gamma) = interpolation;//插值系数
-            //     float w_reciprocal = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
-            //     float z_interpolated = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
-            //     z_interpolated *= w_reciprocal;
-            //     if (depth_buf[get_index(i, j)] > z_interpolated) {
-			// 		Vector3f point={(float)i, (float)j, z_interpolated};
-			// 		Vector3f color = (float)cnt/4.0*t.getColor()+frame_buf[(height-1-point.y())*width + point.x()];
-			// 		depth_buf[get_index(i, j)] = z_interpolated;
-			// 		set_pixel(point, color);}
-            // }
         }
 #endif
-    
     // TODO : set the current pixel (use the set_pixel function) to the color of the triangle (use getColor function) if it should be painted.
 }
 
@@ -280,44 +270,41 @@ void rst::rasterizer::set_pixel(const Eigen::Vector3f& point, const Eigen::Vecto
 
 }
 
-bool rst::rasterizer::add_edge_id(int x,int y,float z[],const Eigen::Vector3f& color)
+bool rst::rasterizer::add_edge_id(int x,int y,bool ifin[],float z[],const Eigen::Vector3f& color)
 {
     int id=get_index(x,y);
     std::vector<int>::iterator result = find( edge_index.begin( ), edge_index.end( ), id ); //查找3
+    Eigen::Vector3f black={0,0,0};
     if(result != edge_index.end())
         return 0;
     else
     {
         edge_index.push_back(id);
-        aslist.push_back(z[0]);
-        aslistcolor.push_back(color);
-        aslist.push_back(z[1]);
-        aslistcolor.push_back(color);
-        aslist.push_back(z[2]);
-        aslistcolor.push_back(color);
-        aslist.push_back(z[3]);
-        aslistcolor.push_back(color);
+        for(int k=0;k<4;k++)
+        {   
+            aslist.push_back(ifin[k]?z[k]:FLT_MAX);
+            aslistcolor.push_back(ifin[k]?color:black);
+        }
         return 1;
     }
 }
-int rst::rasterizer::upload_cache_byid(int x, int y, float z[],bool ifchange,float get[],const Eigen::Vector3f& color)
+void rst::rasterizer::upload_cache_byid(int x, int y, float z[],const Eigen::Vector3f& color)
 {
-    int id=get_index(x,y),posi;
-    for(int i=0;i<edge_index.size();i++)
-        if(edge_index[i]==id)
+    int id=get_index(x,y),posi=if_edge(x,y);
+    for(int i=4*posi,j=0;j<4;j++)
+        if(aslist[i+j]>z[j])
         {
-            posi=i;
-            break;
+            aslist[i+j]=z[j];
+            aslistcolor[i+j]=color;
         }
-        for(int i=4*posi,j=0;j<4;j++)
-        {
-            if(ifchange==true&&aslist[i+j]>z[j])
-            {
-                aslist[i+j]=z[j];
-                aslistcolor[i+j]=color;
-            }
-            get[j]=aslist[i+j];
-        }
-    return posi;
 }
+int rst::rasterizer::if_edge(int x, int y)
+{
+    int id=get_index(x,y);
+    std::vector<int>::iterator result = find( edge_index.begin( ), edge_index.end( ), id ); //查找3
+    if(result == edge_index.end())
+        return -1;
+    return (result-edge_index.begin());
+}
+
 // clang-format on
