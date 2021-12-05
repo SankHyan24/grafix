@@ -173,9 +173,9 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
 					    mindepth = z_interpolated;
                 }
             }
+                float getnow[4];
             if(cnt!=4)// 如果在边缘，就添加到边缘点
             {
-                float getnow[4];
                 add_edge_id(i, j, tmpdepth,t.getColor());//增加点
                 int id=upload_cache_byid(i,j,tmpdepth,1,getnow,t.getColor());//更新z和颜色
                 //渲染当前状态的点
@@ -189,6 +189,12 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
 			    Vector3f color = (float)cnt/4.0*t.getColor();
                 set_pixel(point, color);
 			    depth_buf[get_index(i, j)] = mindepth;
+            }
+            else{
+                int id=upload_cache_byid(i,j,tmpdepth,1,getnow,t.getColor());//更新z和颜色
+                 Vector3f point={(float)i, (float)j, depth_buf[get_index(i, j)]};
+			    Vector3f color = (aslistcolor[4*id]+aslistcolor[4*id+1]+aslistcolor[4*id+2]+aslistcolor[4*id+3])/4;
+                set_pixel(point, color);
             }
             // Vector3f point={(float)i, (float)j, depth_buf[get_index(i, j)]};
 			// Vector3f color = (float)cnt/4.0*t.getColor()+(1.0-(float)cnt/4.0)* frame_buf[get_index(i,j)] ;
@@ -312,6 +318,6 @@ int rst::rasterizer::upload_cache_byid(int x, int y, float z[],bool ifchange,flo
             }
             get[j]=aslist[i+j];
         }
-    return id;
+    return posi;
 }
 // clang-format on
