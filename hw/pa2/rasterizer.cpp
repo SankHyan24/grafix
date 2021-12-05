@@ -156,6 +156,7 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
         {
             cnt = 0;
             mindepth = FLT_MAX;
+            float tmpdepth[] = {FLT_MAX,FLT_MAX,FLT_MAX,FLT_MAX};
             for (int k = 0; k < 4; k++)
             {
                 if(insideTriangle((float)i+cntmat[k][0],(float)j+cntmat[k][1],t.v))
@@ -167,17 +168,36 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
                     float w_reciprocal = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
                     float z_interpolated = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
                     z_interpolated *= w_reciprocal;
+                    tmpdepth[k]=z_interpolated;
                     if (mindepth > z_interpolated)
 					    mindepth = z_interpolated;
                 }
             }
-            Vector3f point={(float)i, (float)j, depth_buf[get_index(i, j)]};
-			Vector3f color = (float)cnt/4.0*t.getColor()+(1.0-(float)cnt/4.0)* frame_buf[get_index(i,j)] ;
-			set_pixel(point, color);
-            if (depth_buf[get_index(i, j)] > mindepth) 
+            if(cnt!=4)// 如果在边缘，就添加到边缘点
             {
-				depth_buf[get_index(i, j)] = mindepth;
-            }// TODO: 还是有问题！每个像素点应该维护一个更复杂的buffer，不然就会出现黑边问题
+                float getnow[4];
+                add_edge_id(i, j, tmpdepth,t.getColor());//增加点
+                int id=upload_cache_byid(i,j,tmpdepth,1,getnow,t.getColor());//更新z和颜色
+                //渲染当前状态的点
+                Vector3f point={(float)i, (float)j, depth_buf[get_index(i, j)]};
+                Vector3f color=(aslistcolor[4*id]+aslistcolor[4*id+1]+aslistcolor[4*id+2]+aslistcolor[4*id+3])/4;
+                set_pixel(point, color);
+            }
+            else if (depth_buf[get_index(i, j)] > mindepth) // 如果完全在这个三角形里面，而且还z覆盖了，就覆盖
+            {
+                Vector3f point={(float)i, (float)j, depth_buf[get_index(i, j)]};
+			    Vector3f color = (float)cnt/4.0*t.getColor();
+                set_pixel(point, color);
+			    depth_buf[get_index(i, j)] = mindepth;
+            }
+            // Vector3f point={(float)i, (float)j, depth_buf[get_index(i, j)]};
+			// Vector3f color = (float)cnt/4.0*t.getColor()+(1.0-(float)cnt/4.0)* frame_buf[get_index(i,j)] ;
+			// set_pixel(point, color);
+            // if (depth_buf[get_index(i, j)] > mindepth) 
+            // {
+			// 	depth_buf[get_index(i, j)] = mindepth;
+            // }
+            // TODO: 还是有问题！每个像素点应该维护一个更复杂的buffer，不然就会出现黑边问题
             
             // if(insideTriangle((float)i+0.25,(float)j+0.25,t.v))
             //     cnt++;
@@ -254,4 +274,44 @@ void rst::rasterizer::set_pixel(const Eigen::Vector3f& point, const Eigen::Vecto
 
 }
 
+bool rst::rasterizer::add_edge_id(int x,int y,float z[],const Eigen::Vector3f& color)
+{
+    int id=get_index(x,y);
+    std::vector<int>::iterator result = find( edge_index.begin( ), edge_index.end( ), id ); //查找3
+    if(result != edge_index.end())
+        return 0;
+    else
+    {
+        edge_index.push_back(id);
+        aslist.push_back(z[0]);
+        aslistcolor.push_back(color);
+        aslist.push_back(z[1]);
+        aslistcolor.push_back(color);
+        aslist.push_back(z[2]);
+        aslistcolor.push_back(color);
+        aslist.push_back(z[3]);
+        aslistcolor.push_back(color);
+        return 1;
+    }
+}
+int rst::rasterizer::upload_cache_byid(int x, int y, float z[],bool ifchange,float get[],const Eigen::Vector3f& color)
+{
+    int id=get_index(x,y),posi;
+    for(int i=0;i<edge_index.size();i++)
+        if(edge_index[i]==id)
+        {
+            posi=i;
+            break;
+        }
+        for(int i=4*posi,j=0;j<4;j++)
+        {
+            if(ifchange==true&&aslist[i+j]>z[j])
+            {
+                aslist[i+j]=z[j];
+                aslistcolor[i+j]=color;
+            }
+            get[j]=aslist[i+j];
+        }
+    return id;
+}
 // clang-format on

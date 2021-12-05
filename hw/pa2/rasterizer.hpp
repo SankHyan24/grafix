@@ -99,5 +99,13 @@ namespace rst
 
         int next_id = 0;
         int get_next_id() { return next_id++; }
+        //MSAA
+        std::vector<int> edge_index;
+        std::vector<float> aslist;
+
+    public:
+        std::vector<Eigen::Vector3f> aslistcolor;
+        bool add_edge_id(int x, int y, float z[], const Eigen::Vector3f &color);
+        int upload_cache_byid(int x, int y, float z[], bool ifchange, float get[], const Eigen::Vector3f &color);
     };
 }
