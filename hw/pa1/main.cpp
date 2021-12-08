@@ -69,14 +69,17 @@ Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio,
     // Then return it.
     float t = -tan(eye_fov / 360 * MY_PI) * fabs(zNear);
     float r = t * aspect_ratio;
-    tmp << 1.0 / r, 0, 0, 0,
-        0, 1.0 / t, 0, 0,
-        0, 0, 2.0 / (zNear - zFar), 0,
-        0, 0, 0, 1;
+    //垂直投影变换，normalization
+    tmp << 1.0 / r,           0,                     0,        0,
+                 0,     1.0 / t,                     0,        0,
+                 0,           0,  2.0 / (zNear - zFar),        0,
+                 0,           0,                     0,        1;
+    // 投影变换
     ortho << 1, 0, 0, 0,
         0, 1, 0, 0,
         0, 0, 1, -(zNear + zFar) / 2,
         0, 0, 0, 1;
+    //透视变换
     projection << zNear, 0, 0, 0,
         0, zNear, 0, 0,
         0, 0, zNear + zFar, -zNear * zFar,
