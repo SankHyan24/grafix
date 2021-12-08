@@ -116,10 +116,10 @@ void rst::rasterizer::draw(pos_buf_id pos_buffer, ind_buf_id ind_buffer, col_buf
 
 //Screen space rasterization
 void rst::rasterizer::rasterize_triangle(const Triangle& t) {
-    auto v = t.toVector4();
-    // TODO : Find out the bounding box of current triangle.
+    // Find out the bounding box of current triangle.
     // iterate through the pixel and find if the current pixel is inside the triangle
     // bounding box
+    auto v = t.toVector4();
     int min_x = (int)std::floor(std::min(v[0][0], std::min(v[1][0], v[2][0])));
     int max_x = (int)std::ceil(std::max(v[0][0], std::max(v[1][0], v[2][0])));
     int min_y = (int)std::floor(std::min(v[0][1], std::min(v[1][1], v[2][1])));
@@ -221,7 +221,7 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
             }
         }
 #endif
-    // TODO : set the current pixel (use the set_pixel function) to the color of the triangle (use getColor function) if it should be painted.
+    //  set the current pixel (use the set_pixel function) to the color of the triangle (use getColor function) if it should be painted.
 }
 
 void rst::rasterizer::set_model(const Eigen::Matrix4f& m)
