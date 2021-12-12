@@ -100,6 +100,7 @@ Eigen::Vector3f texture_fragment_shader(const fragment_shader_payload &payload)
     if (payload.texture)
     {
         // TODO: Get the texture value at the texture coordinates of the current fragment
+        return_color = payload.texture->getColor(payload.tex_coords.x(), payload.tex_coords.y());
     }
     Eigen::Vector3f texture_color;
     texture_color << return_color.x(), return_color.y(), return_color.z();
@@ -125,8 +126,16 @@ Eigen::Vector3f texture_fragment_shader(const fragment_shader_payload &payload)
 
     for (auto &light : lights)
     {
-        // TODO: For each light source in the code, calculate what the *ambient*, *diffuse*, and *specular*
-        // components are. Then, accumulate that result on the *result_color* object.
+        Eigen::Vector3f vectorh = ((light.position - point).normalized() + (eye_pos - point).normalized()).normalized();
+        float ridus = (light.position - point).norm();
+        float maxk = (0 < normal.normalized().dot((light.position - point).normalized())) ? normal.normalized().dot((light.position - point).normalized()) : 0;
+        float maxk2 = normal.normalized().dot(vectorh);
+        ridus *= ridus;
+        maxk2 = 0 < maxk2 ? pow(maxk2, p) : 0;
+        Eigen::Vector3f ambient = ka.cwiseProduct(amb_light_intensity);
+        Eigen::Vector3f diffuse = kd.cwiseProduct(light.intensity) * maxk / ridus;
+        Eigen::Vector3f specular = ks.cwiseProduct(light.intensity) * maxk2 / ridus;
+        result_color += ambient + diffuse + specular;
     }
 
     return result_color * 255.f;
