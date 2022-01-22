@@ -50,7 +50,10 @@
         "streambuf": "cpp",
         "typeinfo": "cpp",
         "chrono": "cpp",
-        "ratio": "cpp"
+        "ratio": "cpp",
+        "numeric": "cpp",
+        "random": "cpp",
+        "cinttypes": "cpp"
     },
     "editor.defaultFormatter": "ms-vscode.cpptools",
     "cmake.configureOnOpen": false
