@@ -26,8 +26,7 @@ void Renderer::Render(const Scene &scene)
         for (uint32_t i = 0; i < scene.width; ++i)
         {
             // generate primary ray direction
-            float x = (2 * (i + 0.5) / (float)scene.width - 1) *
-                      imageAspectRatio * scale;
+            float x = (2 * (i + 0.5) / (float)scene.width - 1) * imageAspectRatio * scale;
             float y = (1 - 2 * (j + 0.5) / (float)scene.height) * scale;
             // Find the x and y positions of the current pixel to get the
             // direction
@@ -36,7 +35,8 @@ void Renderer::Render(const Scene &scene)
             // *scale*, and x (horizontal) variable with the *imageAspectRatio*
             // Don't forget to normalize this direction!
             Vector3f dir = normalize(Vector3f(x, y, -1));
-            framebuffer[m++] = castRay(eye_pos, dir, scene, 0);
+            Ray ray(eye_pos, dir);
+            framebuffer[m++] = scene.castRay(ray, 0);
         }
         UpdateProgress(j / (float)scene.height);
     }
