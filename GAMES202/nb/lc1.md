@@ -33,7 +33,12 @@
 
 > OpenGL实质上使用状态机模型实现
 
-### 着色语言的历史：HLSL
+### 着色语言
+- 最开始：GPU汇编
+- HLSL in DirectX
+- GLSL in OpenGL
+
+### Shader使用：
 
 
 
