@@ -66,7 +66,7 @@ bool Scene::trace(
 // Implementation of Path Tracing
 Vector3f Scene::castRay(const Ray &ray, int depth) const
 {
-    // TODO Implement Path Tracing Algorithm here
+    // Implement Path Tracing Algorithm here
     // intersect(const Ray ray) in Scene.cpp
     // : 求一条光线与场景的交点
     // sampleLight(Intersection pos, float pdf) in Scene.cpp
