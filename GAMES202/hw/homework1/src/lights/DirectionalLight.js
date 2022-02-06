@@ -24,7 +24,7 @@ class DirectionalLight {
 
         mat4.translate(modelMatrix, modelMatrix, translate);
         mat4.scale(modelMatrix, modelMatrix, scale);
-        mat4.lookAt(viewMatrix, this.lightPos, this.focalPoint, this.lightUp)
+        mat4.lookAt(viewMatrix, this.lightPos, this.focalPoint, this.lightUp);
 
         let right = 100;
         let left = -right;
