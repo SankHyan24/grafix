@@ -41,7 +41,7 @@ highp float rand_2to1(vec2 uv ) {
 }
 
 float unpack(vec4 rgbaDepth) {
-    const vec4 bitShift = vec4(1.0, 1.0/256.0, 1.0/(256.0*256.0), 1.0/(256.0*256.0*256.0));
+    const vec4 bitShift = vec4(1.0, 1.0/256.0, 1.0/(256.0*256.0), 1.0/(256.0*256.0*256.0));// 转换到NDC标准空间
     return dot(rgbaDepth, bitShift);
 }
 
@@ -105,7 +105,11 @@ float PCSS(sampler2D shadowMap, vec4 coords){
 
 
 float useShadowMap(sampler2D shadowMap, vec4 shadowCoord){
-  return 1.0;
+  float zReceiver = unpack(texture2D(shadowMap, shadowCoord.xy));
+  if(zReceiver > shadowCoord.z)
+    return 1.0;
+  else
+    return 0.0;
 }
 
 vec3 blinnPhong() {
@@ -134,12 +138,16 @@ vec3 blinnPhong() {
 void main(void) {
 
   float visibility;
-  //visibility = useShadowMap(uShadowMap, vec4(shadowCoord, 1.0));
+  vec3 shadowCoord = vPositionFromLight.xyz / vPositionFromLight.w;
+  shadowCoord = shadowCoord * 0.5 + 0.5;
+  // STEP 1: shadow map
+  // Use shadow map don't need to search blocker
+  visibility = useShadowMap(uShadowMap, vec4(shadowCoord, 1.0));// use shadow map and shadowCoord to get visibility
   //visibility = PCF(uShadowMap, vec4(shadowCoord, 1.0));
   //visibility = PCSS(uShadowMap, vec4(shadowCoord, 1.0));
 
   vec3 phongColor = blinnPhong();
 
-  //gl_FragColor = vec4(phongColor * visibility, 1.0);
-  gl_FragColor = vec4(phongColor, 1.0);
+  gl_FragColor = vec4(phongColor * visibility, 1.0);
+  // gl_FragColor = vec4(phongColor, 1.0);
 }

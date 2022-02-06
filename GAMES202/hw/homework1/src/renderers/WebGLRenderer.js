@@ -1,14 +1,14 @@
 class WebGLRenderer {
     meshes = [];
     shadowMeshes = [];
-    lights = [];
+    lights = [];// 光线列表
 
     constructor(gl, camera) {
-        this.gl = gl;
-        this.camera = camera;
-    }
+        this.gl = gl;//传入的gl
+        this.camera = camera;//传入camera
+    }// 这是这个类的构造函数
 
-    addLight(light) {
+    addLight(light) {// 增加光源
         this.lights.push({
             entity: light,
             meshRender: new MeshRender(this.gl, light.mesh, light.mat)
