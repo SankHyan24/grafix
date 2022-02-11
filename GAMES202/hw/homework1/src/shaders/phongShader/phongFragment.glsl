@@ -84,6 +84,9 @@ void uniformDiskSamples( const in vec2 randomSeed ) {
 }
 
 float findBlocker( sampler2D shadowMap,  vec2 uv, float zReceiver ) {
+  float blocker=0.0;
+  float zblocker=unpack(texture2D(shadowMap, uv));
+  
 	return 1.0;
 }
 

@@ -1,4 +1,4 @@
-# Lecture 3 Real-Time Shadows 2
+# Lecture 4 Real-Time Shadows 2
 ## A deeper look at pcf
 filter/convolution:
 
