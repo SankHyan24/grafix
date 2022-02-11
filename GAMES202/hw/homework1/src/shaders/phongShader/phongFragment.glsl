@@ -45,7 +45,7 @@ float unpack(vec4 rgbaDepth) {
     return dot(rgbaDepth, bitShift);
 }
 
-vec2 poissonDisk[NUM_SAMPLES];
+vec2 poissonDisk[NUM_SAMPLES]; // 泊松分布点
 
 void poissonDiskSamples( const in vec2 randomSeed ) {
 
@@ -88,7 +88,20 @@ float findBlocker( sampler2D shadowMap,  vec2 uv, float zReceiver ) {
 }
 
 float PCF(sampler2D shadowMap, vec4 coords) {
-  return 1.0;
+  float outOfShadow = 0.0;
+  float filterSize= 1.0/400.0*5.0;
+  float bias = 0.002;// bias太小的话会有自遮挡，太大会变成Ghost Shadow
+  // 使用泊松圆盘采样
+  poissonDiskSamples(coords.xy);
+  for( int i = 0; i < NUM_SAMPLES; i ++ ) {
+    vec2 offset = poissonDisk[i] * filterSize;// 采样坐标偏移量
+    float depth = unpack(texture2D(shadowMap, coords.xy + offset));// 采样深度
+    float curdepth=coords.z;
+    if(depth>curdepth-bias) {
+      outOfShadow += 1.0;
+    }
+  }
+  return  outOfShadow / float(NUM_SAMPLES);// 对阴影进行归一化
 }
 
 float PCSS(sampler2D shadowMap, vec4 coords){
@@ -140,11 +153,9 @@ void main(void) {
   float visibility;
   vec3 shadowCoord = vPositionFromLight.xyz / vPositionFromLight.w;
   shadowCoord = shadowCoord * 0.5 + 0.5;
-  // STEP 1: shadow map
-  // Use shadow map don't need to search blocker
-  visibility = useShadowMap(uShadowMap, vec4(shadowCoord, 1.0));// use shadow map and shadowCoord to get visibility
-  //visibility = PCF(uShadowMap, vec4(shadowCoord, 1.0));
-  //visibility = PCSS(uShadowMap, vec4(shadowCoord, 1.0));
+  // visibility = useShadowMap(uShadowMap, vec4(shadowCoord, 1.0));// use shadow map and shadowCoord to get visibility
+  // visibility = PCF(uShadowMap, vec4(shadowCoord, 1.0));
+  visibility = PCSS(uShadowMap, vec4(shadowCoord, 1.0));
 
   vec3 phongColor = blinnPhong();
 
