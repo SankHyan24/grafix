@@ -2,7 +2,7 @@
 ## A deeper look at pcf
 filter/convolution:
 
- $\[\omega*f\](p)=\sum_{q\in \mathcal{N}}^{}\omega(p,q)f(q)$
+ $[\omega*f](p)=\sum_{q\in \mathcal{N}}^{}\omega(p,q)f(q)$
 
 in PCSS: 实际上也是一个卷积运算来求得Visibility函数
 
@@ -53,7 +53,7 @@ PCSS的完整算法
 - 时间：
   - 算均值，常数复杂度
   - 算方差，常数复杂度
-  - 切比雪夫，常熟复杂度
+  - 切比雪夫，常数复杂度
   - 不需要循环
 
 再来讨论第一步，遮挡物搜索：
