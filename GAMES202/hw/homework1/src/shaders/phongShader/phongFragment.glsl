@@ -86,8 +86,15 @@ void uniformDiskSamples( const in vec2 randomSeed ) {
 float findBlocker( sampler2D shadowMap,  vec2 uv, float zReceiver ) {
   float blocker=0.0;
   float zblocker=unpack(texture2D(shadowMap, uv));
-  
-	return 1.0;
+  poissonDiskSamples(vec2(zblocker,zReceiver));
+  for(int i = 0; i < NUM_SAMPLES; i++) {
+    vec2 offset = poissonDisk[i]*filtersize;
+    float depth=unpack(texture2D(shadowMap, uv+offset));
+    if(depth<zReceiver) {
+      blocker+=depth;
+    }
+  }
+	return blocker/float(NUM_SAMPLES);
 }
 
 float PCF(sampler2D shadowMap, vec4 coords) {
@@ -110,13 +117,22 @@ float PCF(sampler2D shadowMap, vec4 coords) {
 float PCSS(sampler2D shadowMap, vec4 coords){
 
   // STEP 1: avgblocker depth
-
+  float avgBlockerDepth = findBlocker(shadowMap, coords.xy, coords.z);
   // STEP 2: penumbra size
-
+  float penumbraSize = 0.5 * (coords.z - avgBlockerDepth);
   // STEP 3: filtering
-  
-  return 1.0;
-
+  float outOfShadow = 0.0;
+  float filterSize = penumbraSize;
+  poissonDiskSamples(coords.xy);
+  for( int i = 0; i < NUM_SAMPLES; i ++ ) {
+    vec2 offset = poissonDisk[i] * filterSize;// 采样坐标偏移量
+    float depth = unpack(texture2D(shadowMap, coords.xy + offset));// 采样深度
+    float curdepth=coords.z;
+    if(depth>curdepth-bias) {
+      outOfShadow += 1.0;
+    }
+  }
+  return  outOfShadow / float(NUM_SAMPLES);
 }
 
 
@@ -156,9 +172,10 @@ void main(void) {
   float visibility;
   vec3 shadowCoord = vPositionFromLight.xyz / vPositionFromLight.w;
   shadowCoord = shadowCoord * 0.5 + 0.5;
-  // visibility = useShadowMap(uShadowMap, vec4(shadowCoord, 1.0));// use shadow map and shadowCoord to get visibility
+  visibility =1.0;
+  // useShadowMap(uShadowMap, vec4(shadowCoord, 1.0));// use shadow map and shadowCoord to get visibility
   // visibility = PCF(uShadowMap, vec4(shadowCoord, 1.0));
-  visibility = PCSS(uShadowMap, vec4(shadowCoord, 1.0));
+  // visibility = PCSS(uShadowMap, vec4(shadowCoord, 1.0));
 
   vec3 phongColor = blinnPhong();
 

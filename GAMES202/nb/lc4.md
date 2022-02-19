@@ -74,7 +74,7 @@ PCSS的完整算法
 用VSSM，其中会使用很多近似，把分布当成正态分布。会产生很多问题：比如，漏光、过暗。过暗还是可以接受的，漏光有点不能接受。
 
 Goal:
-- Represent a distrubution more accurately 更精确地描述这个分布，而不是只用Mean和Variance。
+- Represent a distribution more accurately 更精确地描述这个分布，而不是只用Mean和Variance。
 
 Idea:
 - Use higher order moments to represent a distribution 用高阶矩描述分布
