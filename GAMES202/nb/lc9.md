@@ -1,7 +1,7 @@
 # Lecture 9 Real-time Global Illumination 3 (screen space cont.)
 ## Screen Space Directional Occlusion (SSDO)
 What is SSDO?
-- SSAO加强版，考虑了简介光照
+- SSAO加强版，考虑了间接光照
 
 Key Idea
 - 和Path Tracing很像
@@ -33,4 +33,18 @@ Key Idea
   - 可以优化
 - 使用Depth MipMap
   - depth存四个值的最小值：接触不到最小的，肯定也不可能接触到所有的点
-  - 很像在平面空间里的KD-tree，或者说是一种类计算
+  - 很像在平面空间里的KD-tree，或者说是一种预计算
+- Hierarchy tracing，顺次查询mipmap，快速求交点
+
+最大的问题还是screen space的问题
+- 几何图形遮挡：camera看不到的地方没有反射
+- 边缘割裂：图像边缘外的地方不能产生反射（用模糊edge fading解决）
+
+Pros
+- glossy和specular比较容易做
+- 质量高，速度快
+- 没有spikes（边界5 亮点）和遮蔽问题
+
+Cons
+- diffuse不太容易做
+- screen space丢失信息
