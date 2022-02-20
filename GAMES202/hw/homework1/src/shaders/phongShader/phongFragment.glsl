@@ -28,115 +28,115 @@ uniform sampler2D uShadowMap;
 
 varying vec4 vPositionFromLight;
 
-highp float rand_1to1(highp float x ) { 
+highp float rand_1to1(highp float x) { 
   // -1 -1
-  return fract(sin(x)*10000.0);
+  return fract(sin(x) * 10000.0);
 }
 
-highp float rand_2to1(vec2 uv ) { 
+highp float rand_2to1(vec2 uv) { 
   // 0 - 1
-	const highp float a = 12.9898, b = 78.233, c = 43758.5453;
-	highp float dt = dot( uv.xy, vec2( a,b ) ), sn = mod( dt, PI );
-	return fract(sin(sn) * c);
+  const highp float a = 12.9898, b = 78.233, c = 43758.5453;
+  highp float dt = dot(uv.xy, vec2(a, b)), sn = mod(dt, PI);
+  return fract(sin(sn) * c);
 }
 
 float unpack(vec4 rgbaDepth) {
-    const vec4 bitShift = vec4(1.0, 1.0/256.0, 1.0/(256.0*256.0), 1.0/(256.0*256.0*256.0));// 转换到NDC标准空间
-    return dot(rgbaDepth, bitShift);
+  const vec4 bitShift = vec4(1.0, 1.0 / 256.0, 1.0 / (256.0 * 256.0), 1.0 / (256.0 * 256.0 * 256.0));// 转换到NDC标准空间
+  return dot(rgbaDepth, bitShift);
 }
 
 vec2 poissonDisk[NUM_SAMPLES]; // 泊松分布点
 
-void poissonDiskSamples( const in vec2 randomSeed ) {
+void poissonDiskSamples(const in vec2 randomSeed) {
 
-  float ANGLE_STEP = PI2 * float( NUM_RINGS ) / float( NUM_SAMPLES );
-  float INV_NUM_SAMPLES = 1.0 / float( NUM_SAMPLES );
+  float ANGLE_STEP = PI2 * float(NUM_RINGS) / float(NUM_SAMPLES);
+  float INV_NUM_SAMPLES = 1.0 / float(NUM_SAMPLES);
 
-  float angle = rand_2to1( randomSeed ) * PI2;
+  float angle = rand_2to1(randomSeed) * PI2;
   float radius = INV_NUM_SAMPLES;
   float radiusStep = radius;
 
-  for( int i = 0; i < NUM_SAMPLES; i ++ ) {
-    poissonDisk[i] = vec2( cos( angle ), sin( angle ) ) * pow( radius, 0.75 );
+  for(int i = 0; i < NUM_SAMPLES; i++) {
+    poissonDisk[i] = vec2(cos(angle), sin(angle)) * pow(radius, 0.75);
     radius += radiusStep;
     angle += ANGLE_STEP;
   }
 }
 
-void uniformDiskSamples( const in vec2 randomSeed ) {
+void uniformDiskSamples(const in vec2 randomSeed) {
 
   float randNum = rand_2to1(randomSeed);
-  float sampleX = rand_1to1( randNum ) ;
-  float sampleY = rand_1to1( sampleX ) ;
+  float sampleX = rand_1to1(randNum);
+  float sampleY = rand_1to1(sampleX);
 
   float angle = sampleX * PI2;
   float radius = sqrt(sampleY);
 
-  for( int i = 0; i < NUM_SAMPLES; i ++ ) {
-    poissonDisk[i] = vec2( radius * cos(angle) , radius * sin(angle)  );
+  for(int i = 0; i < NUM_SAMPLES; i++) {
+    poissonDisk[i] = vec2(radius * cos(angle), radius * sin(angle));
 
-    sampleX = rand_1to1( sampleY ) ;
-    sampleY = rand_1to1( sampleX ) ;
+    sampleX = rand_1to1(sampleY);
+    sampleY = rand_1to1(sampleX);
 
     angle = sampleX * PI2;
     radius = sqrt(sampleY);
   }
 }
 
-float findBlocker( sampler2D shadowMap,  vec2 uv, float zReceiver ) {
-  float blocker=0.0;
-  float zblocker=unpack(texture2D(shadowMap, uv));
-  poissonDiskSamples(vec2(zblocker,zReceiver));
+float findBlocker(sampler2D shadowMap, vec2 uv, float zReceiver) {
+  float blocker = 0.0;
+  float zblocker = unpack(texture2D(shadowMap, uv));
+  poissonDiskSamples(vec2(zReceiver, zblocker));
   for(int i = 0; i < NUM_SAMPLES; i++) {
-    vec2 offset = poissonDisk[i]*filtersize;
-    float depth=unpack(texture2D(shadowMap, uv+offset));
-    if(depth<zReceiver) {
-      blocker+=depth;
+    vec2 offset = poissonDisk[i] * 0.001;// pffset太大会导致自遮挡，而且很多噪点
+    zblocker = unpack(texture2D(shadowMap, uv + offset));
+    if(zblocker > zReceiver) {
+      blocker += zblocker;
     }
   }
-	return blocker/float(NUM_SAMPLES);
+  return blocker / float(NUM_SAMPLES);
 }
 
 float PCF(sampler2D shadowMap, vec4 coords) {
   float outOfShadow = 0.0;
-  float filterSize= 1.0/400.0*5.0;
+  float filterSize = 1.0 / 400.0 * 5.0;
   float bias = 0.002;// bias太小的话会有自遮挡，太大会变成Ghost Shadow
   // 使用泊松圆盘采样
   poissonDiskSamples(coords.xy);
-  for( int i = 0; i < NUM_SAMPLES; i ++ ) {
+  for(int i = 0; i < NUM_SAMPLES; i++) {
     vec2 offset = poissonDisk[i] * filterSize;// 采样坐标偏移量
     float depth = unpack(texture2D(shadowMap, coords.xy + offset));// 采样深度
-    float curdepth=coords.z;
-    if(depth>curdepth-bias) {
+    float curdepth = coords.z;
+    if(depth > curdepth - bias) {
       outOfShadow += 1.0;
     }
   }
-  return  outOfShadow / float(NUM_SAMPLES);// 对阴影进行归一化
+  return outOfShadow / float(NUM_SAMPLES);// 对阴影进行归一化
 }
 
-float PCSS(sampler2D shadowMap, vec4 coords){
+float PCSS(sampler2D shadowMap, vec4 coords) {
 
-  // STEP 1: avgblocker depth
+  // // STEP 1 : avgblocker depth
   float avgBlockerDepth = findBlocker(shadowMap, coords.xy, coords.z);
-  // STEP 2: penumbra size
+  // // STEP 2: penumbra size
   float penumbraSize = 0.5 * (coords.z - avgBlockerDepth);
-  // STEP 3: filtering
+  // // STEP 3: filtering
   float outOfShadow = 0.0;
-  float filterSize = penumbraSize;
+  float filterSize = penumbraSize;// 半影大小作为滤波核大小
+  float bias = 0.002;
   poissonDiskSamples(coords.xy);
-  for( int i = 0; i < NUM_SAMPLES; i ++ ) {
+  for(int i = 0; i < NUM_SAMPLES; i++) {
     vec2 offset = poissonDisk[i] * filterSize;// 采样坐标偏移量
     float depth = unpack(texture2D(shadowMap, coords.xy + offset));// 采样深度
-    float curdepth=coords.z;
-    if(depth>curdepth-bias) {
+    float curdepth = coords.z;
+    if(depth > curdepth) {
       outOfShadow += 1.0;
     }
   }
-  return  outOfShadow / float(NUM_SAMPLES);
+  return outOfShadow / float(NUM_SAMPLES);
 }
 
-
-float useShadowMap(sampler2D shadowMap, vec4 shadowCoord){
+float useShadowMap(sampler2D shadowMap, vec4 shadowCoord) {
   float zReceiver = unpack(texture2D(shadowMap, shadowCoord.xy));
   if(zReceiver > shadowCoord.z)
     return 1.0;
@@ -153,8 +153,7 @@ vec3 blinnPhong() {
   vec3 lightDir = normalize(uLightPos);
   vec3 normal = normalize(vNormal);
   float diff = max(dot(lightDir, normal), 0.0);
-  vec3 light_atten_coff =
-      uLightIntensity / pow(length(uLightPos - vFragPos), 2.0);
+  vec3 light_atten_coff = uLightIntensity / pow(length(uLightPos - vFragPos), 2.0);
   vec3 diffuse = diff * light_atten_coff * color;
 
   vec3 viewDir = normalize(uCameraPos - vFragPos);
@@ -172,10 +171,9 @@ void main(void) {
   float visibility;
   vec3 shadowCoord = vPositionFromLight.xyz / vPositionFromLight.w;
   shadowCoord = shadowCoord * 0.5 + 0.5;
-  visibility =1.0;
-  // useShadowMap(uShadowMap, vec4(shadowCoord, 1.0));// use shadow map and shadowCoord to get visibility
+  // visibility = useShadowMap(uShadowMap, vec4(shadowCoord, 1.0));// use shadow map and shadowCoord to get visibility
   // visibility = PCF(uShadowMap, vec4(shadowCoord, 1.0));
-  // visibility = PCSS(uShadowMap, vec4(shadowCoord, 1.0));
+  visibility = PCSS(uShadowMap, vec4(shadowCoord, 1.0));
 
   vec3 phongColor = blinnPhong();
 
